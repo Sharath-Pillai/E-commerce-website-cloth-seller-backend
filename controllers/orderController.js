@@ -17,7 +17,7 @@ const razorpayInstance = new razorpay({
 const placeOrderCOD = async (req, res) => {
   try {
     const { userId, items, amount, address } = req.body;
-    console.log(req.body);
+    // console.log(req.body);
     const orderData = {
       userId,
       items,
@@ -33,14 +33,14 @@ const placeOrderCOD = async (req, res) => {
     res.json({ success: true, message: "Order Placed" });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: req.data.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
 //Placing orders using Stripe Method
 const placeOrderStripe = async (req, res) => {
   try {
-    const { userId, items, account, address } = req.body;
+    const { userId, items, amount, address } = req.body;
     const { origin } = req.headers;
 
     const orderData = {
@@ -72,7 +72,7 @@ const placeOrderStripe = async (req, res) => {
         product_data: {
           name: "Delivery Charges",
         },
-        unit_amount: deliveryCharge,
+        unit_amount: deliveryCharge*100,
       },
       quantity: 1,
     });
@@ -87,18 +87,23 @@ const placeOrderStripe = async (req, res) => {
     res.json({ success: true, session_url: session.url });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: req.data.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
 //verify stripe
 const verifyStripe = async (req, res) => {
-  const { orderId, userId, success } = req.body;
+  const { orderId, success } = req.body;
   try {
     if (success === "true") {
-      await orderModel.findByIdAndUpdate(orderId, { payment: true });
-      await userModel.findByIdAndUpdate(userId, { cartData: {} });
-      res.json({ success: true });
+      const order = await orderModel.findById(orderId);
+      if (order) {
+        await orderModel.findByIdAndUpdate(orderId, { payment: true });
+        await userModel.findByIdAndUpdate(order.userId, { cartData: {} });
+        res.json({ success: true });
+      } else {
+        res.json({ success: false, message: "Order not found" });
+      }
     } else {
       await orderModel.findByIdAndUpdate(orderId);
       res.json({ success: false });
@@ -132,7 +137,7 @@ const placeOrderRazorpay = async (req, res) => {
       currency: currency.toUpperCase(),
       receipt: newOrder._id.toString(),
     };
-    razorpayInstance.orders.create(options, (error, order) => {
+    await razorpayInstance.orders.create(options, (error, order) => {
       if (error) {
         console.log(error);
         return res.json({ success: false, message: error });
@@ -171,7 +176,7 @@ const allAdminOrders = async (req, res) => {
     res.json({ success: true, orders });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: res.data.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
@@ -180,10 +185,11 @@ const userOrders = async (req, res) => {
   try {
     const { userId } = req.body;
     const orders = await orderModel.find({ userId });
+    // console.log(orders);
     res.json({ success: true, orders });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: res.data.message });
+    res.json({ success: false, message: error.message });
   }
 };
 
