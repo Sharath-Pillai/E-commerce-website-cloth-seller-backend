@@ -90,4 +90,19 @@ const adminLogin = (req, res) => {
   }
 };
 
-export { loginUser, registerUser, adminLogin };
+//Route to get user data
+const getUserData = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const user = await userModel.findById(userId).select("-password");
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, user });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export { loginUser, registerUser, adminLogin, getUserData };
