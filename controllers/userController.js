@@ -97,7 +97,7 @@ const getUserData = async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
     res.json({ success: true, user });
-  } catch (error) {
+  } catch (error) {git 
     console.log(error);
     res.json({ success: false, message: error.message });
   }

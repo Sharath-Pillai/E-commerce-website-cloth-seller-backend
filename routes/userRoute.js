@@ -4,6 +4,8 @@ import {
   registerUser,
   adminLogin,
   getUserData,
+  addToWishlist,
+  removeFromWishlist,
 } from "../controllers/userController.js";
 import authUser from "../middleware/authUser.js";
 
@@ -12,5 +14,7 @@ userRouter.post("/register", registerUser);
 userRouter.post("/login", loginUser);
 userRouter.post("/admin", adminLogin);
 userRouter.get("/data", authUser, getUserData);
+userRouter.post("/wishlist/add", authUser, addToWishlist);
+userRouter.post("/wishlist/remove", authUser, removeFromWishlist);
 
 export default userRouter;
