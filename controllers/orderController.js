@@ -16,8 +16,9 @@ const razorpayInstance = new razorpay({
 //Placing orders using COD Method
 const placeOrderCOD = async (req, res) => {
   try {
-    const { userId, items, amount, address } = req.body;
-    // console.log(req.body);
+    const { items, amount, address, isBuyNow } = req.body;
+    const userId = req.userId;
+    console.log(userId);
     const orderData = {
       userId,
       items,
@@ -26,10 +27,13 @@ const placeOrderCOD = async (req, res) => {
       paymentMethod: "COD",
       payment: false,
       date: Date.now(),
+      isBuyNow: !!isBuyNow,
     };
     const newOrder = new orderModel(orderData);
     await newOrder.save();
-    await userModel.findByIdAndUpdate(userId, { cartData: {} });
+    if (!isBuyNow) {
+      await userModel.findByIdAndUpdate(userId, { cartData: {} });
+    }
     res.json({ success: true, message: "Order Placed" });
   } catch (error) {
     console.log(error);
@@ -40,7 +44,8 @@ const placeOrderCOD = async (req, res) => {
 //Placing orders using Stripe Method
 const placeOrderStripe = async (req, res) => {
   try {
-    const { userId, items, amount, address } = req.body;
+    const { items, amount, address, isBuyNow } = req.body;
+    const userId = req.userId;
     const { origin } = req.headers;
 
     const orderData = {
@@ -51,6 +56,7 @@ const placeOrderStripe = async (req, res) => {
       paymentMethod: "Stripe",
       payment: false,
       date: Date.now(),
+      isBuyNow: !!isBuyNow,
     };
     const newOrder = new orderModel(orderData);
     await newOrder.save();
@@ -72,7 +78,7 @@ const placeOrderStripe = async (req, res) => {
         product_data: {
           name: "Delivery Charges",
         },
-        unit_amount: deliveryCharge*100,
+        unit_amount: deliveryCharge * 100,
       },
       quantity: 1,
     });
@@ -97,16 +103,22 @@ const verifyStripe = async (req, res) => {
   try {
     if (success === "true") {
       const order = await orderModel.findById(orderId);
+      console.log(order);
       if (order) {
         await orderModel.findByIdAndUpdate(orderId, { payment: true });
-        await userModel.findByIdAndUpdate(order.userId, { cartData: {} });
-        res.json({ success: true });
+        if (!order.isBuyNow) {
+          await userModel.findByIdAndUpdate(order.userId, { cartData: {} });
+        }
+        res.json({ success: true, isBuyNow: order.isBuyNow });
       } else {
         res.json({ success: false, message: "Order not found" });
       }
     } else {
-      await orderModel.findByIdAndUpdate(orderId);
-      res.json({ success: false });
+      await orderModel.findByIdAndDelete(orderId);
+      res.json({
+        success: false,
+        message: "Payment cancelled. Order removed.",
+      });
     }
   } catch (error) {
     console.log(error);
@@ -117,7 +129,8 @@ const verifyStripe = async (req, res) => {
 //Placing orders using Razorpay Method
 const placeOrderRazorpay = async (req, res) => {
   try {
-    const { userId, items, amount, address } = req.body;
+    const { items, amount, address, isBuyNow } = req.body;
+    const userId = req.userId;
 
     const orderData = {
       userId,
@@ -127,6 +140,7 @@ const placeOrderRazorpay = async (req, res) => {
       paymentMethod: "Razorpay",
       payment: false,
       date: Date.now(),
+      isBuyNow: !!isBuyNow,
     };
 
     const newOrder = new orderModel(orderData);
@@ -152,14 +166,27 @@ const placeOrderRazorpay = async (req, res) => {
 
 const verifyRazorpay = async (req, res) => {
   try {
-    const { userId, razorpay_order_id } = req.body;
+    const { razorpay_order_id } = req.body;
+    const userId = req.userId;
 
     const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
-    console.log(orderInfo);
     if (orderInfo.status === "paid") {
-      await orderModel.findByIdAndUpdate(orderInfo.receipt, { payment: true });
-      await userModel.findByIdAndUpdate(userId, { cartData: {} });
-      res.json({ success: true, message: "Payment Successful" });
+      const order = await orderModel.findById(orderInfo.receipt);
+      if (order) {
+        await orderModel.findByIdAndUpdate(orderInfo.receipt, {
+          payment: true,
+        });
+        if (!order.isBuyNow) {
+          await userModel.findByIdAndUpdate(order.userId, { cartData: {} });
+        }
+        res.json({
+          success: true,
+          message: "Payment Successful",
+          isBuyNow: order.isBuyNow,
+        });
+      } else {
+        res.json({ success: false, message: "Order not found" });
+      }
     } else {
       res.json({ success: false, message: "Payment Failed" });
     }
@@ -183,7 +210,7 @@ const allAdminOrders = async (req, res) => {
 //user order data for frontend
 const userOrders = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
     const orders = await orderModel.find({ userId });
     // console.log(orders);
     res.json({ success: true, orders });

@@ -1,4 +1,3 @@
-import { json } from "express";
 import { v2 as cloudinary } from "cloudinary";
 import productModel from "../models/productModel.js";
 
@@ -44,22 +43,10 @@ const addProduct = async (req, res) => {
       image: imagesUrl,
       date: Date.now(),
     };
-    console.log(productData);
     const product = new productModel(productData);
     await product.save();
     res.json({ success: true, message: "Product Added" });
 
-    console.log(
-      name,
-      description,
-      price,
-      category,
-      subCategory,
-      sizes,
-      bestseller,
-    );
-    console.log(image1, image2, image3, image4);
-    console.log(imagesUrl);
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -68,6 +55,7 @@ const addProduct = async (req, res) => {
 
 //fn for list products
 const listProducts = async (req, res) => {
+  console.log("Collection Name:", productModel.collection.name);
   try {
     const products = await productModel.find({});
     res.json({ success: true, products });

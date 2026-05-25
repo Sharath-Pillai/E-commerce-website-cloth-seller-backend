@@ -4,13 +4,12 @@ import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 
 const createToken = (id) => {
-  return JWT.sign({ id }, process.env.JWT_SECRET);
+  return JWT.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 //Route for user login
 const loginUser = async (req, res) => {
   try {
-    console.log(req.body);
     const { email, password } = req.body;
     const user = await userModel.findOne({ email });
     if (!user) {
@@ -82,7 +81,7 @@ const adminLogin = (req, res) => {
       const token = JWT.sign(email + password, process.env.JWT_SECRET);
       res.json({ success: true, token });
     } else {
-      res.json({ success: false, message: "Inavlid credentials" });
+      res.json({ success: false, message: "Invalid credentials" });
     }
   } catch (error) {
     console.log(error);
@@ -93,8 +92,7 @@ const adminLogin = (req, res) => {
 //Route to get user data
 const getUserData = async (req, res) => {
   try {
-    const { userId } = req.body;
-    const user = await userModel.findById(userId).select("-password");
+    const user = await userModel.findById(req.userId).select("-password");
     if (!user) {
       return res.json({ success: false, message: "User not found" });
     }
@@ -105,4 +103,43 @@ const getUserData = async (req, res) => {
   }
 };
 
-export { loginUser, registerUser, adminLogin, getUserData };
+// Add to wishlist
+const addToWishlist = async (req, res) => {
+  try {
+    const { itemId } = req.body;
+    const userData = await userModel.findById(req.userId);
+    let wishlistData = userData.wishlistData || [];
+    if (!wishlistData.includes(itemId)) {
+      wishlistData.push(itemId);
+      await userModel.findByIdAndUpdate(req.userId, { wishlistData });
+    }
+    res.json({ success: true, message: "Added to wishlist" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+// Remove from wishlist
+const removeFromWishlist = async (req, res) => {
+  try {
+    const { itemId } = req.body;
+    const userData = await userModel.findById(req.userId);
+    let wishlistData = userData.wishlistData || [];
+    wishlistData = wishlistData.filter((id) => id !== itemId);
+    await userModel.findByIdAndUpdate(req.userId, { wishlistData });
+    res.json({ success: true, message: "Removed from wishlist" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export {
+  loginUser,
+  registerUser,
+  adminLogin,
+  getUserData,
+  addToWishlist,
+  removeFromWishlist,
+};
