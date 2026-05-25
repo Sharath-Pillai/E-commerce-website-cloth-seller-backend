@@ -1,23 +1,24 @@
 import mongoose from "mongoose";
 
 const connectDB = async () => {
- 
-  mongoose.connection.on("connected", () => {
-    console.log("db connected");
-  });
-  mongoose.connection.on("error", (err) => {
-    console.log("db connection error:", err);
-  });
-  mongoose.connection.on("disconnected", () => {
-    console.log("db disconnected");
-  });
-
   try {
-    await mongoose.connect(
-      `${process.env.MONGO_CONNECTION_URL}/E-commereceBROTOTYPE`,
-    );
+    mongoose.connection.on("connected", () => {
+      console.log("DB Connected");
+    });
+
+    mongoose.connection.on("error", (err) => {
+      console.log("DB Error:", err);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.log("DB Disconnected");
+    });
+
+    await mongoose.connect(process.env.MONGO_CONNECTION_URL);
+    console.log("Connected DB:", mongoose.connection.name);
+
   } catch (error) {
-    console.error("Database connection failed", error);
+    console.log("Database Connection Failed:", error);
   }
 };
 

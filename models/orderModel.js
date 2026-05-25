@@ -8,10 +8,11 @@ const orderSchema= new mongoose.Schema({
     status:{type:String,required:true,default:"Order Placed"},
     paymentMethod:{type:String,required:true},
     payment:{type:Boolean,required:true,default:false},
-    date:{type:Number,required:true}
+    date:{type:Number,required:true},
+    isBuyNow:{type:Boolean,default:false}
 })
 
-const orderModel=mongoose.model.order ||mongoose.model("order",orderSchema)
+const orderModel = mongoose.models.order || mongoose.model("order", orderSchema)
 export default orderModel
 
 
