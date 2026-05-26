@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
+let isConnected = false;
+
 const connectDB = async () => {
+  if (isConnected || mongoose.connection.readyState >= 1) {
+    isConnected = true;
+    return;
+  }
+
   try {
     mongoose.connection.on("connected", () => {
       console.log("DB Connected");
@@ -14,7 +21,8 @@ const connectDB = async () => {
       console.log("DB Disconnected");
     });
 
-    await mongoose.connect(process.env.MONGO_CONNECTION_URL);
+    const db = await mongoose.connect(process.env.MONGO_CONNECTION_URL);
+    isConnected = db.connections[0].readyState === 1;
     console.log("Connected DB:", mongoose.connection.name);
 
   } catch (error) {

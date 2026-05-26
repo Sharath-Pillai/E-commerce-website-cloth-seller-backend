@@ -12,7 +12,7 @@ import chatbotRouter from "./routes/chatbotRoute.js";
 //App config
 const app = express();
 const port = process.env.PORT || 5000;
-connectDB();
+await connectDB();
 connectCoudinary();
 
 //middlewares
